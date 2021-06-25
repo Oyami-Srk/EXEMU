@@ -1,9 +1,6 @@
 #pragma once
 
-#include "resource.h"
-
 void log(char* text);
-void log(const char text[]);
 
 #ifdef __cplusplus
 extern "C" {

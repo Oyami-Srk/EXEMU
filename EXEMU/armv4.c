@@ -17,10 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define _CRT_SECURE_NO_WARNINGS
-
-#include "armv4.h""
-#include "disassembly.h""
+#include "framework.h"
+#include "armv4.h"
+#include "disassembly.h"
 #include <assert.h>
 #include "EXEMU.h"
 
@@ -88,7 +87,7 @@ static void exception_out(struct armv4_cpu_t *cpu)
    
     reg_show(cpu);
     ERROR("stop\n");
-    Sleep(1000);
+    usleep(1000);
     
 }
 
@@ -495,11 +494,11 @@ uint32_t read_mem(struct armv4_cpu_t *cpu, uint8_t privileged, uint32_t address,
     }
     
     //1M Peripheral memory
-    for(int i=0; i<cpu->peripheral.number; i++) {
-        if(cpu->peripheral.link[i].read &&
-         BMASK(address, cpu->peripheral.link[i].mask, cpu->peripheral.link[i].prefix)) {
-            uint32_t offset = address - cpu->peripheral.link[i].prefix;
-            return cpu->peripheral.link[i].read(cpu->peripheral.link[i].reg_base, offset);
+    for(int i=0; i<cpu->peripheral_number; i++) {
+        if(cpu->peripheral_link[i].read &&
+         BMASK(address, cpu->peripheral_link[i].mask, cpu->peripheral_link[i].prefix)) {
+            uint32_t offset = address - cpu->peripheral_link[i].prefix;
+            return cpu->peripheral_link[i].read(cpu->peripheral_link[i].reg_base, offset);
         }
     }
 
@@ -526,11 +525,11 @@ void write_mem(struct armv4_cpu_t *cpu, uint8_t privileged, uint32_t address,
         return;
     
     //4G Peripheral memory
-    for(int i=0; i<cpu->peripheral.number; i++) {
-        if(cpu->peripheral.link[i].write &&
-         BMASK(address, cpu->peripheral.link[i].mask, cpu->peripheral.link[i].prefix)) {
-            uint32_t offset = address - cpu->peripheral.link[i].prefix;
-            cpu->peripheral.link[i].write(cpu->peripheral.link[i].reg_base, offset, data, mask);
+    for(int i=0; i<cpu->peripheral_number; i++) {
+        if(cpu->peripheral_link[i].write &&
+         BMASK(address, cpu->peripheral_link[i].mask, cpu->peripheral_link[i].prefix)) {
+            uint32_t offset = address - cpu->peripheral_link[i].prefix;
+            cpu->peripheral_link[i].write(cpu->peripheral_link[i].reg_base, offset, data, mask);
             return;
         }
     }
@@ -657,22 +656,32 @@ void fetch(struct armv4_cpu_t *cpu)
  */
 void peripheral_register(struct armv4_cpu_t *cpu, struct peripheral_link_t *link, int number)
 {
-    cpu->peripheral.link = link;
-    cpu->peripheral.number = number;
-    for(int i=0; i<cpu->peripheral.number; i++) {
-        if(cpu->peripheral.link[i].reset) {
-            if(cpu->peripheral.link[i].reset(cpu->peripheral.link[i].reg_base)) {
+    cpu->peripheral_link = link;
+    cpu->peripheral_number = number;
+    cpu->running = 1002;
+    cpu->mmu.reg[0] = 10;
+    cpu->COOKIE = 0xDEADBEEF;
+  cpu->mmu.reg[1] = 20;
+  cpu->mmu.tlb_total = 233123;
+  cpu->wtf[0] = 114514;
+  cpu->wtf[31] = 1919810;
+  printf("0x%p, %s", &(cpu->peripheral_link), cpu->peripheral_link[0].name);
+  for(int i=0; i<cpu->peripheral_number; i++) {
+        if(cpu->peripheral_link[i].reset) {
+            if(cpu->peripheral_link[i].reset(cpu->peripheral_link[i].reg_base)) {
                 WARN("[%d]%s register at 0x%08x, size %d\n",
-                    i, cpu->peripheral.link[i].name,
-                     cpu->peripheral.link[i].prefix,
-                      (~cpu->peripheral.link[i].mask)+1);
+                    i, cpu->peripheral_link[i].name,
+                     cpu->peripheral_link[i].prefix,
+                      (~cpu->peripheral_link[i].mask)+1);
             } else {
-                cpu->peripheral.link[i].reset = NULL;
-                cpu->peripheral.link[i].read = NULL;
-                cpu->peripheral.link[i].write = NULL;
+                cpu->peripheral_link[i].reset = NULL;
+                cpu->peripheral_link[i].read = NULL;
+                cpu->peripheral_link[i].write = NULL;
             }
         }
     }
+    printf("0x%p, %s", &(cpu->peripheral_link), cpu->peripheral_link[0].name);
+  return;
 }
 
 

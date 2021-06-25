@@ -3,24 +3,32 @@
 #include "EXEMU.h"
 #include "armv4.h"
 #include "digctl.h"
+#include "time.h"
 
 uint32_t DIGCTL_REGS[64];
 
-LARGE_INTEGER start_time;
-LARGE_INTEGER counter_freq;
+uint64_t start_time;
+uint64_t counter_freq;
+
 uint32_t digctl_reset(void* base) {
+    struct timespec tp;
+    memset(&tp, 0, sizeof(tp));
     memset(DIGCTL_REGS, 0x0, sizeof(DIGCTL_REGS));
-    QueryPerformanceFrequency(&counter_freq);
-    log_f("Counter Frequence:%d Hz\n",counter_freq.QuadPart);
-    QueryPerformanceCounter(&start_time);
+
+    log_f("Counter Frequence:%ld Hz\n",counter_freq);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+    start_time = tp.tv_nsec;
 }
 
 
 
 uint32_t digctl_read(void* base, uint32_t address) {
-    LARGE_INTEGER time;
-    QueryPerformanceCounter(&time);
-    DIGCTL_REGS[HW_DIGCTL_MICROSECONDS] = (time.QuadPart - start_time.QuadPart)/(double)counter_freq.QuadPart*1e6;
+    uint64_t time;
+    struct timespec tp;
+    memset(&tp, 0, sizeof(tp));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+    time = tp.tv_nsec;
+    DIGCTL_REGS[HW_DIGCTL_MICROSECONDS] = (time - start_time)/1000000;
 
     switch (address >> 4) {
     case HW_DIGCTL_MICROSECONDS:
@@ -33,10 +41,6 @@ uint32_t digctl_read(void* base, uint32_t address) {
 }
 
 void digctl_write(void* base, uint32_t address, uint32_t data, uint8_t mask) {
-
-
-
-
     uint32_t* data_p;
     data_p = &DIGCTL_REGS[address >> 4];
 

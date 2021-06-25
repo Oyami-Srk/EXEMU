@@ -49,8 +49,25 @@ struct tlb_t {
     uint8_t ap;
 };
 
+struct peripheral_link_t {
+  char *name;
+  uint32_t mask;
+  uint32_t prefix;
+  void *reg_base;
+  uint32_t (*reset)(void *base);
+  void (*exit)(void *base);
+  uint32_t (*read)(void *base, uint32_t address);
+  void (*write)(void *base, uint32_t address, uint32_t data, uint8_t mask);
+};
 
-struct armv4_cpu_t {
+struct peripheral_extern_t {
+  uint32_t number;
+  struct peripheral_link_t *link;
+};
+
+
+  struct armv4_cpu_t {
+    uint32_t COOKIE;
     volatile uint32_t running;
     uint32_t spsr[7];
 #define  cpsr(cpu)    (cpu)->spsr[0]
@@ -144,20 +161,9 @@ struct armv4_cpu_t {
     }mmu;
 
 
-    struct peripheral_extern_t {
-        uint32_t number;
-
-        struct peripheral_link_t {
-            char *name;
-            uint32_t mask;
-            uint32_t prefix;
-            void *reg_base;
-            uint32_t (*reset)(void *base);
-            void (*exit)(void *base);
-            uint32_t (*read)(void *base, uint32_t address);
-            void (*write)(void *base, uint32_t address, uint32_t data, uint8_t mask);
-        }*link;
-    }peripheral;
+    uint32_t wtf[32];
+  uint32_t peripheral_number;
+  struct peripheral_link_t *peripheral_link;
 
     uint32_t code_counter;
     uint32_t code_time;
